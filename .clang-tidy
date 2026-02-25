@@ -1,0 +1,10 @@
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-branch-clone,
+  -bugprone-empty-catch
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(include/ivy/|src/)'
+FormatStyle: file

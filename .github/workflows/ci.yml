@@ -1,0 +1,172 @@
+name: ivy-cpp-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build openjdk-17-jre z3 libz3-dev python3
+      - name: Configure
+        env:
+          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j
+      - name: Reset coverage counters
+        run: find build -name '*.gcda' -delete
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  build-test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install z3 ninja
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Check format
+        run: |
+          FILES=$(git ls-files '*.hpp' '*.cpp')
+          if [ -n "$FILES" ]; then
+            clang-format --dry-run --Werror $FILES
+          fi
+
+  tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy clang openjdk-17-jre z3 libz3-dev
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Generate ANTLR C++ sources
+        run: cmake --build build --target ivy_antlr_gen -j2
+      - name: Run clang-tidy
+        run: |
+          clang-tidy -p build src/*.cpp
+
+  sanitizer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang openjdk-17-jre z3 libz3-dev
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DIVY_ENABLE_ASAN_UBSAN=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ gcovr openjdk-17-jre z3 libz3-dev
+      - name: Configure
+        env:
+          CC: gcc
+          CXX: g++
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DIVY_ENABLE_COVERAGE=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Coverage gate (core modules)
+        run: scripts/coverage_gate.py --build-dir build --line-threshold 85 --branch-threshold 70
+      - name: Coverage report
+        run: |
+          gcovr -r . --xml-pretty -o coverage.xml
+          gcovr -r . --print-summary
+
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev
+      - name: Build Java baseline
+        run: mvn -q package
+      - name: Build C++
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+      - name: Parity
+        run: python3 scripts/parity_check.py --corpus TestData --cpp-cmd build/ivy_verify
+      - name: Determinism
+        run: python3 scripts/determinism_check.py --binary build/ivy_verify --corpus TestData
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang openjdk-17-jre z3 libz3-dev
+      - name: Configure fuzz
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build-fuzz -DCMAKE_BUILD_TYPE=Debug -DIVY_ENABLE_FUZZ=ON
+      - name: Build fuzz
+        run: cmake --build build-fuzz -j
+      - name: Run fuzz (60s)
+        run: scripts/run_parser_fuzz.sh build-fuzz/ivy_parser_fuzz
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev
+      - name: Build Java baseline
+        run: mvn -q package
+      - name: Build C++
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+      - name: Benchmark
+        run: python3 scripts/benchmark_corpus.py --corpus TestData --cpp-cmd build/ivy_verify

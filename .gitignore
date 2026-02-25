@@ -2,6 +2,7 @@
 ._*
 *.swp
 *~
+.venv/
 
 # Java
 *.class
@@ -9,7 +10,16 @@
 # Maven target
 target
 
+# C++ and tooling artifacts
+build/
+build-*/
+*.gcov
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+compile_commands.json
+
 # IntelliJ IDEA
 .idea
 *.iml
-
