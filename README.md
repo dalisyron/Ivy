@@ -43,8 +43,7 @@ ctest --test-dir build --output-on-failure
 Format:
 
 ```bash
-FILES=$(git ls-files '*.hpp' '*.cpp')
-clang-format --dry-run --Werror $FILES
+git ls-files '*.hpp' '*.cpp' | xargs clang-format --dry-run --Werror
 ```
 
 Static analysis (`clang-tidy`):
