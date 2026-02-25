@@ -158,7 +158,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev
+          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev libz3-java
+      - name: Resolve libz3java path
+        run: |
+          Z3JAVA_SO=$(find /usr -name 'libz3java.so' 2>/dev/null | head -n 1)
+          if [ -z "$Z3JAVA_SO" ]; then
+            echo "libz3java.so not found after dependency installation" >&2
+            exit 1
+          fi
+          echo "IVY_JAVA_LIB_PATH=$(dirname "$Z3JAVA_SO")" >> "$GITHUB_ENV"
       - name: Build Java baseline
         run: mvn -q package
       - name: Build C++
@@ -166,7 +174,9 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DIVY_ANTLR_JAR="$IVY_ANTLR_JAR"
           cmake --build build -j1
       - name: Parity
-        run: python3 scripts/parity_check.py --corpus TestData --cpp-cmd build/ivy_verify
+        run: |
+          python3 scripts/parity_check.py --corpus TestData --cpp-cmd build/ivy_verify \
+            --java-cmd "java -Djava.library.path=$IVY_JAVA_LIB_PATH -cp lib/com.microsoft.z3.jar:lib/antlr4-runtime-4.13.2.jar:target/classes verification.ImpVerifier"
       - name: Determinism
         run: python3 scripts/determinism_check.py --binary build/ivy_verify --corpus TestData
 
@@ -205,7 +215,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev
+          sudo apt-get install -y maven openjdk-17-jdk z3 libz3-dev libz3-java
+      - name: Resolve libz3java path
+        run: |
+          Z3JAVA_SO=$(find /usr -name 'libz3java.so' 2>/dev/null | head -n 1)
+          if [ -z "$Z3JAVA_SO" ]; then
+            echo "libz3java.so not found after dependency installation" >&2
+            exit 1
+          fi
+          echo "IVY_JAVA_LIB_PATH=$(dirname "$Z3JAVA_SO")" >> "$GITHUB_ENV"
       - name: Build Java baseline
         run: mvn -q package
       - name: Build C++
@@ -213,4 +231,6 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DIVY_ANTLR_JAR="$IVY_ANTLR_JAR"
           cmake --build build -j1
       - name: Benchmark
-        run: python3 scripts/benchmark_corpus.py --corpus TestData --cpp-cmd build/ivy_verify
+        run: |
+          python3 scripts/benchmark_corpus.py --corpus TestData --cpp-cmd build/ivy_verify --fail-on-error \
+            --java-cmd "java -Djava.library.path=$IVY_JAVA_LIB_PATH -cp lib/com.microsoft.z3.jar:lib/antlr4-runtime-4.13.2.jar:target/classes verification.ImpVerifier"
