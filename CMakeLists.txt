@@ -151,7 +151,7 @@ target_link_libraries(ivy
   PUBLIC
     z3::libz3
   PRIVATE
-    antlr4_static)
+    $<LINK_ONLY:antlr4_static>)
 
 get_target_property(IVY_ANTLR_INCLUDE_DIRS antlr4_static INTERFACE_INCLUDE_DIRECTORIES)
 if(IVY_ANTLR_INCLUDE_DIRS)
