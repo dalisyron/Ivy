@@ -49,8 +49,8 @@ TEST_P(InlineVerificationParityTest, MatchesJavaExpectation) {
 
 INSTANTIATE_TEST_SUITE_P(JavaInlineVerification, InlineVerificationParityTest,
                          ::testing::ValuesIn(InlineCases()),
-                         [](const ::testing::TestParamInfo<ProgramCase> &info) {
-                             return SanitizeTestName(info.param.name);
+                         [](const ::testing::TestParamInfo<ProgramCase> &param_info) {
+                             return SanitizeTestName(param_info.param.name);
                          });
 
 TEST(VerifierSamplePrograms, ExamplesCorpusAllValid) {
