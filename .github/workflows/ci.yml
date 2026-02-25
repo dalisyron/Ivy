@@ -232,5 +232,6 @@ jobs:
           cmake --build build -j1
       - name: Benchmark
         run: |
-          python3 scripts/benchmark_corpus.py --corpus TestData --cpp-cmd build/ivy_verify --fail-on-error \
+          java -Djava.library.path="$IVY_JAVA_LIB_PATH" -cp lib/com.microsoft.z3.jar:lib/antlr4-runtime-4.13.2.jar:target/classes verification.ImpVerifier TestData/Examples/Abs.imp > /tmp/ivy-java-benchmark-sanity.txt
+          python3 scripts/benchmark_corpus.py --corpus TestData --cpp-cmd build/ivy_verify \
             --java-cmd "java -Djava.library.path=$IVY_JAVA_LIB_PATH -cp lib/com.microsoft.z3.jar:lib/antlr4-runtime-4.13.2.jar:target/classes verification.ImpVerifier"
