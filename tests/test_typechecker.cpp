@@ -41,8 +41,8 @@ TEST_P(TypeCheckerParityTest, MatchesJavaExpectation) {
 }
 
 INSTANTIATE_TEST_SUITE_P(JavaTypeChecker, TypeCheckerParityTest, ::testing::ValuesIn(TypeCases()),
-                         [](const ::testing::TestParamInfo<ProgramCase> &info) {
-                             return SanitizeTestName(info.param.name);
+                         [](const ::testing::TestParamInfo<ProgramCase> &param_info) {
+                             return SanitizeTestName(param_info.param.name);
                          });
 
 } // namespace ivy::test
