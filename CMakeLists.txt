@@ -23,7 +23,20 @@ if(IVY_BUILD_TESTS)
 endif()
 
 find_package(Java REQUIRED COMPONENTS Runtime)
-find_package(Z3 CONFIG REQUIRED)
+
+find_package(Z3 CONFIG QUIET)
+if(NOT TARGET z3::libz3)
+  find_path(IVY_Z3_INCLUDE_DIR NAMES z3++.h)
+  find_library(IVY_Z3_LIBRARY NAMES z3 libz3)
+  if(NOT IVY_Z3_INCLUDE_DIR OR NOT IVY_Z3_LIBRARY)
+    message(FATAL_ERROR "Could not find Z3. Install Z3 development files (headers + library).")
+  endif()
+  add_library(z3::libz3 UNKNOWN IMPORTED)
+  set_target_properties(
+    z3::libz3 PROPERTIES
+    IMPORTED_LOCATION "${IVY_Z3_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${IVY_Z3_INCLUDE_DIR}")
+endif()
 
 set(IVY_ANTLR_JAR "/Users/nibom/v23/antlr-4.13.2-complete.jar" CACHE FILEPATH "Path to antlr-4.13.2-complete.jar")
 set(IVY_GRAMMAR "${CMAKE_SOURCE_DIR}/src/main/java/imp/parser/antlr/Imp.g4")
