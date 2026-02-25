@@ -5,6 +5,14 @@
 ### Added
 - Portfolio documentation and migration traceability updates.
 
+### Fixed
+- CI GCC warning gate failures from `-Wshadow` in parameterized test-name generators.
+- Java parity/benchmark runner configuration to include the native Z3 Java library path in CI.
+
+### Changed
+- CI build parallelism defaults to `-j1` on heavy jobs to reduce memory pressure and runner instability.
+- Benchmark gate behavior to keep Java sanity validation while tolerating expected invalid corpus inputs.
+
 ## v1-portfolio-quality
 
 ### Added
