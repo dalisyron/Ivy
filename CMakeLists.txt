@@ -5,6 +5,7 @@ project(IvyCpp VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(IVY_BUILD_TESTS "Build C++ tests" ON)
 option(IVY_BUILD_CLI "Build CLI executable" ON)
@@ -83,6 +84,7 @@ FetchContent_Declare(
   GIT_TAG 4.13.2
   SOURCE_SUBDIR runtime/Cpp)
 FetchContent_MakeAvailable(antlr4_runtime)
+set_target_properties(antlr4_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 function(ivy_apply_warnings target_name)
   if(NOT IVY_ENABLE_WARNINGS)
@@ -150,6 +152,14 @@ target_link_libraries(ivy
     z3::libz3
   PRIVATE
     antlr4_static)
+
+get_target_property(IVY_ANTLR_INCLUDE_DIRS antlr4_static INTERFACE_INCLUDE_DIRECTORIES)
+if(IVY_ANTLR_INCLUDE_DIRS)
+  target_include_directories(ivy SYSTEM PRIVATE ${IVY_ANTLR_INCLUDE_DIRS})
+endif()
+if(DEFINED antlr4_runtime_SOURCE_DIR)
+  target_include_directories(ivy SYSTEM PRIVATE "${antlr4_runtime_SOURCE_DIR}/runtime/Cpp/runtime/src")
+endif()
 
 get_target_property(IVY_Z3_INCLUDE_DIRS z3::libz3 INTERFACE_INCLUDE_DIRECTORIES)
 if(IVY_Z3_INCLUDE_DIRS)
